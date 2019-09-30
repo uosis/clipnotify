@@ -3,26 +3,48 @@
 #include <X11/extensions/Xfixes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 int main(void) {
-    Display *disp;
-    Window root;
-    Atom clip;
-    XEvent evt;
-
-    disp = XOpenDisplay(NULL);
+    Display *disp = XOpenDisplay(NULL);
     if (!disp) {
-        fprintf(stderr, "Can't open X display\n");
+        perror("Can't open X display");
         exit(1);
     }
 
-    root = DefaultRootWindow(disp);
+    int event_base, error_base;
+    assert(XFixesQueryExtension(disp, &event_base, &error_base));
 
-    clip = XInternAtom(disp, "CLIPBOARD", False);
+    Window root = DefaultRootWindow(disp);
+
+    Atom clipboard = XInternAtom(disp, "CLIPBOARD", False);
 
     XFixesSelectSelectionInput(disp, root, XA_PRIMARY, XFixesSetSelectionOwnerNotifyMask);
-    XFixesSelectSelectionInput(disp, root, clip, XFixesSetSelectionOwnerNotifyMask);
+    XFixesSelectSelectionInput(disp, root, clipboard, XFixesSetSelectionOwnerNotifyMask);
 
-    XNextEvent(disp, &evt);
-    XCloseDisplay(disp);
+    XEvent evt;
+
+    while (True)
+    {
+        XNextEvent(disp, &evt);
+
+        if (evt.type == event_base + XFixesSelectionNotify)
+        {
+            Atom selection = ((XFixesSelectionNotifyEvent*)&evt)->selection;
+
+            if (selection == XA_PRIMARY)
+                printf("primary\n");
+            else if (selection == clipboard)
+                printf("clipboard\n");
+            else {
+                perror("Unknown selection");
+                exit(1);        
+            }
+        } else {
+            perror("Unknown event type");
+            exit(1);
+        }
+
+        fflush(stdout);
+    }
 }
