@@ -30,16 +30,18 @@ int main(void) {
 
         if (evt.type == event_base + XFixesSelectionNotify)
         {
-            Atom selection = ((XFixesSelectionNotifyEvent*)&evt)->selection;
+            XFixesSelectionNotifyEvent *e = (XFixesSelectionNotifyEvent*)&evt;
 
-            if (selection == XA_PRIMARY)
-                printf("primary\n");
-            else if (selection == clipboard)
-                printf("clipboard\n");
+            if (e->selection == XA_PRIMARY)
+                printf("primary ");
+            else if (e->selection == clipboard)
+                printf("clipboard ");
             else {
                 perror("Unknown selection");
                 exit(1);        
             }
+
+            printf("0x%08x\n", e->owner);
         } else {
             perror("Unknown event type");
             exit(1);
